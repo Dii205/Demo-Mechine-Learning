@@ -38,7 +38,7 @@ X_test_scaled = scaler.transform(X_test)
 
 # 3. Huấn luyện mô hình
 models = {
-    "Decision Tree": DecisionTreeClassifier(random_state=42),
+    ""Decision Tree": DecisionTreeClassifier(max_depth=None, min_samples_leaf=1, random_state=42),
     "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42),
     "SVM": SVC(kernel='rbf', probability=True, random_state=42)
 }
