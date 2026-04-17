@@ -6,7 +6,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 # 1. Cấu hình giao diện
 st.set_page_config(page_title="ML Comparison Tool", layout="centered")
@@ -23,9 +23,9 @@ st.sidebar.subheader("🌲 Random Forest")
 n_trees = st.sidebar.slider("Số lượng cây", 1, 200, 100)
 
 # Tham số SVM
-st.sidebar.subheader("🧠 SVM (Support Vector Machine)")
+st.sidebar.subheader("🧠 SVM")
 svm_kernel = st.sidebar.selectbox("Chọn Kernel", ["rbf", "linear", "poly", "sigmoid"])
-svm_c = st.sidebar.slider("Chỉ số C (Regularization)", 0.01, 10.0, 1.0)
+svm_c = st.sidebar.slider("Chỉ số C", 0.01, 10.0, 1.0)
 
 if uploaded_file is None:
     st.warning("⚠️ Vui lòng tải lên file CSV ở thanh bên trái để bắt đầu.")
@@ -55,27 +55,39 @@ results = []
 for name, model in models.items():
     if name == "SVM":
         model.fit(X_train_scaled, y_train)
-        acc = accuracy_score(y_test, model.predict(X_test_scaled))
+        y_pred = model.predict(X_test_scaled)
     else:
-        # DT và RF dùng dữ liệu thô
         model.fit(X_train, y_train)
-        acc = accuracy_score(y_test, model.predict(X_test))
+        y_pred = model.predict(X_test)
     
     trained_models[name] = model
-    results.append({"Thuật toán": name, "Accuracy": acc})
+    
+    # Tính toán các tiêu chí so sánh
+    results.append({
+        "Thuật toán": name,
+        "Accuracy": accuracy_score(y_test, y_pred),
+        "Precision": precision_score(y_test, y_pred, average='weighted'),
+        "Recall": recall_score(y_test, y_pred, average='weighted'),
+        "F1-Score": f1_score(y_test, y_pred, average='weighted')
+    })
 
 # 4. Hiển thị Kết quả huấn luyện
-st.subheader("📊 1. Kết quả so sánh độ chính xác")
+st.subheader("📊 1. Bảng so sánh các tiêu chí đánh giá")
 df_res = pd.DataFrame(results)
-st.table(df_res)
 
-fig = px.bar(df_res, x="Thuật toán", y="Accuracy", color="Thuật toán", 
-             text_auto='.2%', title=f"Hiệu suất mô hình (SVM Kernel: {svm_kernel})")
+# Hiển thị bảng với màu sắc làm nổi bật giá trị cao nhất
+st.dataframe(df_res.style.highlight_max(axis=0, color='lightgreen'))
+
+# Biểu đồ so sánh đa chỉ số
+st.subheader("📈 Biểu đồ so sánh trực quan")
+df_melted = df_res.melt(id_vars="Thuật toán", var_name="Tiêu chí", value_name="Giá trị")
+fig = px.bar(df_melted, x="Thuật toán", y="Giá trị", color="Tiêu chí", 
+             barmode="group", text_auto='.2f', title="So sánh chi tiết các chỉ số")
 st.plotly_chart(fig, use_container_width=True)
 
 st.markdown("---")
 
-# 5. Dự đoán dữ liệu mới
+# 5. Dự đoán dữ liệu mới (Giữ nguyên phần này)
 st.subheader("🔮 2. Dự đoán dựa trên thông số nhập vào")
 input_data = []
 cols = st.columns(3)
@@ -87,7 +99,6 @@ for i, feature in enumerate(X.columns):
 if st.button("🔍 Đưa ra kết quả dự đoán"):
     st.write("### Kết quả từ 3 thuật toán:")
     res_cols = st.columns(3)
-    
     for idx, (name, model) in enumerate(trained_models.items()):
         if name == "SVM":
             new_data_input = scaler.transform([input_data])
@@ -96,7 +107,6 @@ if st.button("🔍 Đưa ra kết quả dự đoán"):
             prediction = model.predict([input_data])[0]
         
         status = "Bệnh" if prediction == 1 else "Không bệnh"
-        
         with res_cols[idx]:
             st.info(f"**{name}**")
             if prediction == 1:
