@@ -75,8 +75,8 @@ for name, model in models.items():
 st.subheader("📊 1. Bảng so sánh các tiêu chí đánh giá")
 df_res = pd.DataFrame(results)
 
-# Hiển thị bảng với màu sắc làm nổi bật giá trị cao nhất
-st.dataframe(df_res.style.highlight_max(axis=0, color='lightgreen'))
+# Hiển thị bảng
+st.table(df_res)
 
 # Biểu đồ so sánh đa chỉ số
 st.subheader("📈 Biểu đồ so sánh trực quan")
